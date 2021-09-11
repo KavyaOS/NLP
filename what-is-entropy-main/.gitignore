@@ -1,0 +1,15 @@
+.ipynb_checkpoints/
+.vscode/
+.mypy_cache/
+.Rapp.history
+
+*.txt
+*.patternmodel
+*.cls
+*.dat
+*.swp
+*.ent_in_sent
+*.surp_in_sent
+*.entropy
+*.surprisal
+.DS_Store
