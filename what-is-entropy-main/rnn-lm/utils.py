@@ -14,7 +14,7 @@ class Corpus(object):
         self._test_num_lines = len(list(self._get_raw_iter(self.test))) 
     
     def _get_raw_iter(self, path):
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding="utf8") as f:
             for line in f:
                 if len(line.strip()) > 0: # Skip empty lines
                     yield line 
@@ -54,7 +54,7 @@ class MyTextIterableDataset(torch.utils.data.IterableDataset):
         self._iterator = self.parse_file(self.file_path)
     
     def parse_file(self, path):
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding="utf8") as f:
             for line in f:
                 if len(line.strip()) > 0: # Skip empty lines
                     yield line 
@@ -100,7 +100,7 @@ class MyTextDataset(): # A map-style dataset (non-iterable)
     
     def read_lines(self, path):
         lines = []
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding="utf8") as f:
             for line in f:
                 if len(line.strip()) > 0: # Skip empty lines
                     lines.append(line)
