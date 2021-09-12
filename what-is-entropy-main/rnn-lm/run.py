@@ -264,7 +264,7 @@ def evaluate(val_loader):
 # A standalone function for computing and outputing perplexity scores
 ###
 @torch.no_grad()
-def ppl_by_sentence(model, loader):
+def ppl_by_sentence(model):
     model.eval()
     fwriter = None
     if args.output_ppl:
@@ -275,7 +275,7 @@ def ppl_by_sentence(model, loader):
     for batch in val_loader:
         data, data_lengths, targets = process_batch(batch, flat_target=False) # should not flat the output
         if args.model != 'Transformer':
-            hidden = repackage_hidden(hidden)
+            hidden = repackage_hidden(hidden, device)
             output, hidden = model(data, data_lengths, hidden)
         else:
             output = model(data, data_lengths)
@@ -321,6 +321,7 @@ def main():
         # Currently, only rnn model supports flatten_parameters function.
         if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
             model.rnn.flatten_parameters()
+        ppl_by_sentence(model)
 
     # Run on test data.
     test_loss = evaluate(test_loader)
@@ -332,4 +333,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    #print(args.model)
