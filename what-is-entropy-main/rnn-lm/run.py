@@ -67,7 +67,7 @@ parser.add_argument('--nhead', type=int, default=2,
                     help='the number of heads in the encoder/decoder of the transformer model')
 
 # For experiments
-parser.add_argument('--output_ppl', type=str, default='', help='path to save the perplexity (ppl) scores of test data')
+parser.add_argument('--output_ppl', type=str, default='ppl.txt', help='path to save the perplexity (ppl) scores of test data')
 
 args = parser.parse_args()
 
