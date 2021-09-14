@@ -67,7 +67,7 @@ parser.add_argument('--nhead', type=int, default=2,
                     help='the number of heads in the encoder/decoder of the transformer model')
 
 # For experiments
-parser.add_argument('--output_ppl', type=str, default='ppl.txt', help='path to save the perplexity (ppl) scores of test data')
+parser.add_argument('--output_ppl', type=str, default='', help='path to save the perplexity (ppl) scores of test data')
 
 args = parser.parse_args()
 
@@ -81,7 +81,7 @@ if torch.cuda.is_available():
     if not args.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-device = torch.device('cuda' if args.cuda else 'cpu')
+device = torch.device("cuda" if args.cuda else "cpu")
 
 
 ###
@@ -132,7 +132,7 @@ def process_batch(batch, pad_id = 1, flat_target = True):
     # target is the same as the input_ids
     ids, mask, lengths = batch
     pads = torch.full((ids.shape[0], 1), pad_id)
-    ids_shifted = torch.cat((ids.long(), pads.long()), dim=1) # Use torch.cat to add a column of all pad_id to the right of ids
+    ids_shifted = torch.cat((ids, pads.long()), dim=1) # Use torch.cat to add a column of all pad_id to the right of ids
     targets = ids_shifted[:, 1:]
     if flat_target:
         targets = ids.view(-1)# targets () is a flat tensor
@@ -275,12 +275,9 @@ def ppl_by_sentence(model):
     for batch in val_loader:
         data, data_lengths, targets = process_batch(batch, flat_target=False) # should not flat the output
         data = data.to(device)
-        data_lengths = data_lengths
+        targets = targets.to(device)
         if args.model != 'Transformer':
             hidden = repackage_hidden(hidden, device)
-            print("data:", data)
-            print("Data lengths", data_lengths)
-            print("hidden",hidden)
             output, hidden = model(data, data_lengths, hidden)
         else:
             output = model(data, data_lengths)
@@ -326,7 +323,6 @@ def main():
         # Currently, only rnn model supports flatten_parameters function.
         if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
             model.rnn.flatten_parameters()
-        ppl_by_sentence(model)
 
     # Run on test data.
     test_loss = evaluate(test_loader)
@@ -337,4 +333,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    with open("model.pt", 'rb') as f:
+        model = torch.load(f)
+        model.rnn.flatten_parameters()
+    ppl_by_sentence(model)
