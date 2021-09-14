@@ -81,7 +81,7 @@ if torch.cuda.is_available():
     if not args.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-device = torch.device("cuda" if args.cuda else "cpu")
+device = torch.device('cuda' if args.cuda else 'cpu')
 
 
 ###
@@ -132,7 +132,7 @@ def process_batch(batch, pad_id = 1, flat_target = True):
     # target is the same as the input_ids
     ids, mask, lengths = batch
     pads = torch.full((ids.shape[0], 1), pad_id)
-    ids_shifted = torch.cat((ids, pads), dim=1) # Use torch.cat to add a column of all pad_id to the right of ids
+    ids_shifted = torch.cat((ids.long(), pads.long()), dim=1) # Use torch.cat to add a column of all pad_id to the right of ids
     targets = ids_shifted[:, 1:]
     if flat_target:
         targets = ids.view(-1)# targets () is a flat tensor
@@ -274,8 +274,13 @@ def ppl_by_sentence(model):
         hidden = model.init_hidden(args.batch_size)
     for batch in val_loader:
         data, data_lengths, targets = process_batch(batch, flat_target=False) # should not flat the output
+        data = data.to(device)
+        data_lengths = data_lengths
         if args.model != 'Transformer':
             hidden = repackage_hidden(hidden, device)
+            print("data:", data)
+            print("Data lengths", data_lengths)
+            print("hidden",hidden)
             output, hidden = model(data, data_lengths, hidden)
         else:
             output = model(data, data_lengths)
