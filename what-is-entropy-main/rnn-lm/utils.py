@@ -4,10 +4,10 @@ from itertools import cycle
 
 
 class Corpus(object):
-    def __init__(self, path, prefix='', ext='.txt') -> None:
-        self.train = os.path.join(path, f'{prefix}train{ext}')
-        self.valid = os.path.join(path, f'{prefix}valid{ext}')
-        self.test = os.path.join(path, f'{prefix}test{ext}')
+    def __init__(self, path) -> None:
+        self.train = os.path.join(path, 'train.csv')
+        self.valid = os.path.join(path, 'valid.csv')
+        self.test = os.path.join(path, 'test.csv')
 
         self._train_num_lines = len(list(self._get_raw_iter(self.train)))
         self._valid_num_lines = len(list(self._get_raw_iter(self.valid)))

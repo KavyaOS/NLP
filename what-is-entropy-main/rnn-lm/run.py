@@ -21,7 +21,7 @@ import math
 
 
 parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM Language Model')
-parser.add_argument('--data', type=str, default='.data/WikiText2/wikitext-2',
+parser.add_argument('--data', type=str, default='data/maptask',
                     help='location of the data corpus')
 parser.add_argument('--tokenizer', type=str, default='word-level-tokenizer-wiki2.json',
                     help='pretrained tokenizer')
@@ -67,6 +67,9 @@ parser.add_argument('--nhead', type=int, default=2,
                     help='the number of heads in the encoder/decoder of the transformer model')
 
 # For experiments
+parser.add_argument('--task', type=str, default='main', choices=['main', 'compute'])
+parser.add_argument('--load', type=str, default='model.pt',
+                    help='path to save the final model')
 parser.add_argument('--output_ppl', type=str, default='', help='path to save the perplexity (ppl) scores of test data')
 
 args = parser.parse_args()
@@ -87,7 +90,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 ###
 # Load data
 ###
-corpus = Corpus(args.data, prefix='wiki.', ext='.tokens')
+corpus = Corpus(args.data)
 train_data, val_data, test_data = corpus.get_data()
 
 # Load tokenizer
@@ -180,7 +183,7 @@ def train(train_loader, epoch: int = 1):
 
         model.zero_grad()
         if args.model != 'Transformer':
-            if data.shape[0] != args.batch_size: # For the last iter in an epoch, the actual size of data is not necessarily args.batch_size
+            if data.shape[0] != args.batch_size: # For the last batch's actual size is not necessarily args.batch_size
                 hidden = model.init_hidden(data.shape[0])
             hidden = repackage_hidden(hidden, device)
             try:
@@ -235,7 +238,7 @@ def train(train_loader, epoch: int = 1):
 # Evaluate 
 ###
 @torch.no_grad()
-def evaluate(val_loader):
+def evaluate(model, val_loader):
     model.eval()
     total_loss = 0.0
     
@@ -264,7 +267,7 @@ def evaluate(val_loader):
 # A standalone function for computing and outputing perplexity scores
 ###
 @torch.no_grad()
-def ppl_by_sentence(model):
+def ppl_by_sentence(model, loader):
     model.eval()
     fwriter = None
     if args.output_ppl:
@@ -272,24 +275,27 @@ def ppl_by_sentence(model):
     
     if args.model != 'Transformer':
         hidden = model.init_hidden(args.batch_size)
-    for batch in val_loader:
+    for batch in loader:
         data, data_lengths, targets = process_batch(batch, flat_target=False) # should not flat the output
         data = data.to(device)
         targets = targets.to(device)
         if args.model != 'Transformer':
+            if data.shape[0] != args.batch_size: # For the last iter in an epoch, the actual size of data is not necessarily args.batch_size
+                hidden = model.init_hidden(data.shape[0])
             hidden = repackage_hidden(hidden, device)
             output, hidden = model(data, data_lengths, hidden)
         else:
             output = model(data, data_lengths)
     
-    if args.output_ppl:
-        for i in range(output.shape[0]):
-            o = output[i]
-            t = targets[i]
-            ppl = criterion(o, t) # 
-            fwriter.write(ppl.item())
-            fwriter.write('\n')
-    fwriter.close()
+        if args.output_ppl:
+            for i in range(output.shape[0]):
+                o = output[i]
+                t = targets[i]
+                ppl = criterion(o, t) # 
+                fwriter.write(str(ppl.item()))
+                fwriter.write('\n')
+    if fwriter:
+        fwriter.close()
 
 
 def main():
@@ -299,7 +305,7 @@ def main():
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
             train(train_loader, epoch)
-            val_loss = evaluate(val_loader)
+            val_loss = evaluate(model, val_loader)
 
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
@@ -325,16 +331,24 @@ def main():
             model.rnn.flatten_parameters()
 
     # Run on test data.
-    test_loss = evaluate(test_loader)
+    test_loss = evaluate(model, test_loader)
     print('=' * 89)
     print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
         test_loss, math.exp(test_loss)))
     print('=' * 89)
 
 
-if __name__ == '__main__':
-    #main()
-    with open("model.pt", 'rb') as f:
+def compute():
+    with open(args.load, 'rb') as f:
         model = torch.load(f)
-        model.rnn.flatten_parameters()
-    ppl_by_sentence(model)
+        if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
+            model.rnn.flatten_parameters()
+    ppl_by_sentence(model, test_loader)
+    # evaluate(model, test_loader)
+
+
+if __name__ == '__main__':
+    if args.task == 'main':
+        main()
+    elif args.task == 'compute':
+        compute()
