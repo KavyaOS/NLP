@@ -3,7 +3,6 @@
 .mypy_cache/
 .Rapp.history
 
-*.txt
 *.patternmodel
 *.cls
 *.dat
