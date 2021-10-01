@@ -21,7 +21,7 @@ import math
 
 
 parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM Language Model')
-parser.add_argument('--data', type=str, default='data/maptask',
+parser.add_argument('--data', type=str, default='.data/WikiText2/wikitext-2',
                     help='location of the data corpus')
 parser.add_argument('--tokenizer', type=str, default='word-level-tokenizer-wiki2.json',
                     help='pretrained tokenizer')
@@ -90,7 +90,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 ###
 # Load data
 ###
-corpus = Corpus(args.data)
+corpus = Corpus(args.data, prefix='wiki.', ext='.tokens')
 train_data, val_data, test_data = corpus.get_data()
 
 # Load tokenizer
@@ -135,7 +135,7 @@ def process_batch(batch, pad_id = 1, flat_target = True):
     # target is the same as the input_ids
     ids, mask, lengths = batch
     pads = torch.full((ids.shape[0], 1), pad_id)
-    ids_shifted = torch.cat((ids, pads.long()), dim=1) # Use torch.cat to add a column of all pad_id to the right of ids
+    ids_shifted = torch.cat((ids, pads), dim=1) # Use torch.cat to add a column of all pad_id to the right of ids
     targets = ids_shifted[:, 1:]
     if flat_target:
         targets = ids.view(-1)# targets () is a flat tensor

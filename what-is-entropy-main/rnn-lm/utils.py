@@ -4,17 +4,17 @@ from itertools import cycle
 
 
 class Corpus(object):
-    def __init__(self, path) -> None:
-        self.train = os.path.join(path, 'train.csv')
-        self.valid = os.path.join(path, 'valid.csv')
-        self.test = os.path.join(path, 'test.csv')
+    def __init__(self, path, prefix='', ext='.txt') -> None:
+        self.train = os.path.join(path, f'{prefix}train{ext}')
+        self.valid = os.path.join(path, f'{prefix}valid{ext}')
+        self.test = os.path.join(path, f'{prefix}test{ext}')
 
         self._train_num_lines = len(list(self._get_raw_iter(self.train)))
         self._valid_num_lines = len(list(self._get_raw_iter(self.valid)))
         self._test_num_lines = len(list(self._get_raw_iter(self.test))) 
     
     def _get_raw_iter(self, path):
-        with open(path, 'r', encoding="utf8") as f:
+        with open(path, 'r') as f:
             for line in f:
                 if len(line.strip()) > 0: # Skip empty lines
                     yield line 
@@ -54,7 +54,7 @@ class MyTextIterableDataset(torch.utils.data.IterableDataset):
         self._iterator = self.parse_file(self.file_path)
     
     def parse_file(self, path):
-        with open(path, 'r', encoding="utf8") as f:
+        with open(path, 'r') as f:
             for line in f:
                 if len(line.strip()) > 0: # Skip empty lines
                     yield line 
@@ -100,7 +100,7 @@ class MyTextDataset(): # A map-style dataset (non-iterable)
     
     def read_lines(self, path):
         lines = []
-        with open(path, 'r', encoding="utf8") as f:
+        with open(path, 'r') as f:
             for line in f:
                 if len(line.strip()) > 0: # Skip empty lines
                     lines.append(line)
