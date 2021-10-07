@@ -72,7 +72,7 @@ parser.add_argument('--load', type=str, default='model.pt',
                     help='path to save the final model')
 parser.add_argument('--output_ppl', type=str, default='', help='path to save the perplexity (ppl) scores of test data')
 
-args = parser.parse_args()
+args, unknown = parser.parse_known_args()
 
 ###
 # Initialization

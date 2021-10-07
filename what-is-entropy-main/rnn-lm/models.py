@@ -5,7 +5,6 @@ import torch.nn.functional as F
 
 class RNNModel(nn.Module):
     """Container module with an encoder, a recurrent module, and a decoder."""
-
     def __init__(self, args):
         super(RNNModel, self).__init__()
         self.rnn_type = args.model
@@ -80,3 +79,58 @@ class RNNModel(nn.Module):
                     weight.new_zeros(self.nlayers, bsz, self.nhid))
         else:
             return weight.new_zeros(self.nlayers, bsz, self.nhid)
+
+
+class MixedRNN(RNNModel):
+    def __init__(self, args):
+        super(RNNModel, self).__init__()
+        self.gesture_ids = []
+        self.g_ntokens = args.g_ntokens
+        self.g_emsize = args.g_emsize
+        self.g_encoder = nn.Embedding(self.g_ntokens, self.g_emsize)
+        self.g2w_encoder = nn.Linear(self.g_emsize, self.emsize)
+
+        self.trm_type = args.trm_type # 'linear' or 'none'
+        self.mix_type = args.mix_type
+        if self.mix_type == 'sum':
+            self.mix_emsize = self.emsize
+        elif self.mix_type == 'concat':
+            if self.trm_type == 'none':
+                self.mix_emsize = self.emsize + self.g_emsize
+            elif self.trm_type == 'linear':
+                self.mix_emsize = self.emsize * 2
+        elif self.mix_type == 'bilinear':
+            self.mix_emsize = args.mix_emsize
+            self.bilinear_encoder = nn.Bilinear(self.emsize, self.g_emsize, self.mix_emsize)
+
+        self.pred_task = args.pred_task
+        if self.pred_task == 'word':
+            self.decoder = nn.Linear(self.nhid, self.ntoken)
+        elif self.pred_task == 'gesture':
+            self.decoder = nn.Linear(self.nhid, self.g_ntokens)
+    
+    def forward(self, x1, x2, x_lengths, h):
+        """
+        x1: word sequence
+        x2: gesture sequence
+        """
+        w_emb = self.drop(self.encoder(x1))
+        g_emb = self.drop(self.g_encoder(x2))
+        if self.trm_type == 'linear':
+            g_emb = self.g2w_encoder(g_emb)
+        if self.mix_type == 'sum':
+            mix_emb = w_emb + g_emb
+        elif self.mix_type == 'concat':
+            mix_emb = torch.cat((w_emb, g_emb), dim=1)
+        elif self.mix_type == 'bilinear':
+            mix_emb = self.bilinear_encoder(w_emb, g_emb)
+        
+        emb_packed = nn.utils.rnn.pack_padded_sequence(mix_emb, x_lengths, batch_first=True, enforce_sorted=False)
+        out, h = self.rnn(emb_packed, h) # out shape: [B, L, H]
+        out, _ = nn.utils.rnn.pad_packed_sequence(out, batch_first=True)
+
+        out = self.drop(out)
+        decoded = self.decoder(out) # decoded shape: [B, L, V], V is vocabulary size
+        probs = F.log_softmax(decoded, dim=1)
+
+        return probs, h
