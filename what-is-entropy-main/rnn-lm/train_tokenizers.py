@@ -7,7 +7,7 @@ from tokenizers.trainers import WordLevelTrainer
 from tokenizers.pre_tokenizers import Whitespace
 
 
-def train_wordlevel_tokenizer(input_path, output_file, prefix = 'wiki', special_tokens = None):
+def train_wordlevel_tokenizer(input_path, output_file, special_tokens = None):
     """
     https://huggingface.co/docs/tokenizers/python/latest/quicktour.html#training-the-tokenizer
     We can set the training arguments like vocab_size or min_frequency (here left at their default values of 30,000 and 0) but the most important part is to give the special_tokens we plan to use later on (they are not used at all during training) so that they get inserted in the vocabulary.
@@ -27,7 +27,7 @@ def train_wordlevel_tokenizer(input_path, output_file, prefix = 'wiki', special_
 
     # Check if the corpus data exist
     if os.path.isdir(input_path):
-        files = [os.path.join(input_path, f'{prefix}.train.tokens') for split in ['train', 'test', 'valid']]
+        files = [os.path.join(input_path, split.csv) for split in ['train', 'test', 'valid']]
         for file in files:
             if not os.path.exists(file):
                 print(f'{file} does not exist!')
@@ -44,7 +44,7 @@ def train_wordlevel_tokenizer(input_path, output_file, prefix = 'wiki', special_
 
 
 def test_tokenizer(tokenizer_path: str):
-    tokenizer = Tokenizer.from_file('word-level-tokenizer-wiki2.json')
+    tokenizer = Tokenizer.from_file(tokenizer_path)
 
     # Single sentence
     output = tokenizer.encode("Hello, y'all!")
@@ -55,6 +55,8 @@ def test_tokenizer(tokenizer_path: str):
     outputs = tokenizer.encode_batch(["Hello, y'all!", "How are you 😁 ?"])
     print(outputs[0].tokens)
     print(outputs[1].tokens)
+    print(outputs[1].attention_mask())
+    print(len(outputs))
 
 
 def check_special_tokens(input_path):
@@ -76,8 +78,10 @@ def main():
     # train_wordlevel_tokenizer(input_path='.data/WikiText2/wikitext-2/', output_file='word-level-tokenizer-wiki2_pad.json', special_tokens=['[UNK]', '[PAD]']) 
     # NOTE: the token in original corpus data is <unk>. If we use [UNK] as special_token, the resulting .json dictionary file still contains <unk> rather than [UNK]
 
-    check_special_tokens(input_path='data/ytb1_label.txt')
-    train_wordlevel_tokenizer(input_path='data/ytb1_label.txt', output_file='ytb1_label_pad.json', special_tokens=['<a>', '<b>', '<c>', '<d>', '<e>', '<f>', '<g>', '<h>'])
+    check_special_tokens(input_path='data/combined_corpus/train.csv')
+    train_wordlevel_tokenizer(input_path='data/combined_corpus/train.csv', output_file='trained_tokenizers/combined_corpus.json', special_tokens=['<a>', '<b>', '<c>', '<d>', '<e>', '<f>', '<g>', '<h>'])
+
+    #test_tokenizer('trained_tokenizers/bnc.json')
 
 
 if __name__ == '__main__':

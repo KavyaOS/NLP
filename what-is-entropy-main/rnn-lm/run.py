@@ -90,7 +90,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 ###
 # Load data
 ###
-corpus = Corpus(args.data, prefix='wiki.', ext='.tokens')
+corpus = Corpus(args.data)
 train_data, val_data, test_data = corpus.get_data()
 
 # Load tokenizer
@@ -135,7 +135,7 @@ def process_batch(batch, pad_id = 1, flat_target = True):
     # target is the same as the input_ids
     ids, mask, lengths = batch
     pads = torch.full((ids.shape[0], 1), pad_id)
-    ids_shifted = torch.cat((ids, pads), dim=1) # Use torch.cat to add a column of all pad_id to the right of ids
+    ids_shifted = torch.cat((ids, pads.long()), dim=1) # Use torch.cat to add a column of all pad_id to the right of ids
     targets = ids_shifted[:, 1:]
     if flat_target:
         targets = ids.view(-1)# targets () is a flat tensor
@@ -291,7 +291,9 @@ def ppl_by_sentence(model, loader):
             for i in range(output.shape[0]):
                 o = output[i]
                 t = targets[i]
-                ppl = criterion(o, t) # 
+            
+                ppl = criterion(o, t) #
+
                 fwriter.write(str(ppl.item()))
                 fwriter.write('\n')
     if fwriter:
