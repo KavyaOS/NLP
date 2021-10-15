@@ -1,6 +1,6 @@
 import numpy as np
 
-with open('output_ppl/combined_corpus.txt', 'r') as f:
+with open('output_ppl/combined_corpus_subwordtk.txt', 'r') as f:
     numbers = []
     for line in f:
         numbers.append(float(line[:-1]))
