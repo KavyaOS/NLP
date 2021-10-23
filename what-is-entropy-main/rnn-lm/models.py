@@ -1,5 +1,6 @@
 import torch
-import torch.nn as nn
+import math
+from torch import nn, Tensor
 import torch.nn.functional as F
 
 
@@ -87,6 +88,7 @@ class MixedRNN(RNNModel):
         self.gesture_ids = []
         self.g_ntokens = args.g_ntokens
         self.g_emsize = args.g_emsize
+        self.emsize = args.emsize
         self.g_encoder = nn.Embedding(self.g_ntokens, self.g_emsize)
         self.g2w_encoder = nn.Linear(self.g_emsize, self.emsize)
 
@@ -134,3 +136,50 @@ class MixedRNN(RNNModel):
         probs = F.log_softmax(decoded, dim=1)
 
         return probs, h
+
+
+class PositionalEncoding(nn.Module):
+    """
+    Adapted from https://pytorch.org/tutorials/beginner/transformer_tutorial.html
+    wich modification to batch_size order
+    """
+    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+
+        pe = torch.zeros(max_len, 1, d_model)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        x: Tensor, shape [batch_size, seq_len, embedding_dim]
+        """
+        x = x + self.pe[:, :x.size(0), :]
+        return self.dropout(x)
+
+
+class TrmModel(nn.Module):
+    def __init__(self, ntoken, ninp, nhead, nhid, nlayers, dropout=0.5):
+        super(TrmModel, self).__init__()
+        try:
+            from torch.nn import TransformerEncoder, TransformerEncoderLayer
+        except:
+            raise ImportError('TransformerEncoder module does not exist in PyTorch 1.1 or lower.')
+        self.model_type = 'Transformer'
+        self.src_mask = None
+        self.pos_encoder = PositionalEncoding(ninp, dropout)
+        encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
+        self.encoder = nn.Embedding(ntoken, ninp)
+        self.ninp = ninp
+        self.decoder = nn.Linear(ninp, ntoken)
+    
+    def forward(self, src: Tensor, src_mask: Tensor) -> Tensor:
+        pass
+    
+    def _generate_square_subsequent_mask(self, sz):
+        pass

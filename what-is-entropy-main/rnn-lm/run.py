@@ -23,19 +23,26 @@ import math
 parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='.data/WikiText2/wikitext-2',
                     help='location of the data corpus')
+parser.add_argument('--data-prefix', type=str, default='labeled.',
+                    help='prefix of data corpus')
+parser.add_argument('--data-ext', type=str, default='.txt',
+                    help='extension of data corpus')
 parser.add_argument('--tokenizer', type=str, default='word-level-tokenizer-wiki2.json',
                     help='pretrained tokenizer')
 parser.add_argument('--model', type=str, default='LSTM',
                     help='type of recurrent net (RNN_TANH, RNN_RELU, LSTM, GRU, Transformer)')
 
-parser.add_argument('--emsize', type=int, default=200,
+parser.add_argument('--type_model', type=str, choices=['MixedRNN', 'RNNModel'], default='',
+                    help='model type')
+
+parser.add_argument('--emsize', type=int, default=30,
                     help='size of word embeddings')
 parser.add_argument('--nhid', type=int, default=200,
                     help='number of hidden units per layer')
 parser.add_argument('--nlayers', type=int, default=2,
                     help='number of layers')
 
-parser.add_argument('--lr', type=float, default=0.05,
+parser.add_argument('--lr', type=float, default=0.001,
                     help='initial learning rate')
 parser.add_argument('--lr_scheduler', type=str, choices=['StepLR', 'ExponentialLR'], default='')
 parser.add_argument('--clip', type=float, default=0.25,
@@ -66,6 +73,19 @@ parser.add_argument('--onnx-export', type=str, default='',
 parser.add_argument('--nhead', type=int, default=2,
                     help='the number of heads in the encoder/decoder of the transformer model')
 
+parser.add_argument('--g_ntokens', type=int, default=400,
+                    help='number of tokens for gesture data')
+parser.add_argument('--g_emsize', type=int, default=200,
+                    help='size of gesture embeddings')
+parser.add_argument('--trm_type', type=str, default=['linear', 'none'],
+                    help='type')
+parser.add_argument('--mix_type', type=str, choices=['sum', 'concat', 'bilinear'], default='',
+                    help='type')
+parser.add_argument('--pred_task', type=str, choices=['word', 'gesture'], default='',
+                    help='prediction task')
+parser.add_argument('--mix_emsize', type=int, default='',
+                    help='mixed embedding size')
+
 # For experiments
 parser.add_argument('--task', type=str, default='main', choices=['main', 'compute'])
 parser.add_argument('--load', type=str, default='model.pt',
@@ -90,7 +110,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 ###
 # Load data
 ###
-corpus = Corpus(args.data, prefix='wiki.', ext='.tokens')
+corpus = Corpus(args.data, prefix=args.data_prefix, ext=args.data_ext)
 train_data, val_data, test_data = corpus.get_data()
 
 # Load tokenizer
@@ -187,6 +207,7 @@ def train(train_loader, epoch: int = 1):
                 hidden = model.init_hidden(data.shape[0])
             hidden = repackage_hidden(hidden, device)
             try:
+
                 output, hidden = model(data, data_lengths, hidden)
             except RuntimeError:
                 # Print debug info
@@ -300,6 +321,7 @@ def ppl_by_sentence(model, loader):
 
 def main():
     global model
+    val_ppl = []
     best_val_loss = None
     try:
         for epoch in range(1, args.epochs+1):
@@ -312,7 +334,7 @@ def main():
                     'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                             val_loss, math.exp(val_loss)))
             print('-' * 89)
-
+            val_ppl.append(math.exp(val_loss))
             if not best_val_loss or val_loss < best_val_loss:
                 with open(args.save, 'wb') as f:
                     torch.save(model, f)
@@ -337,8 +359,11 @@ def main():
         test_loss, math.exp(test_loss)))
     print('=' * 89)
 
+    # print(val_ppl)
+
 
 def compute():
+    # global model
     with open(args.load, 'rb') as f:
         model = torch.load(f)
         if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
