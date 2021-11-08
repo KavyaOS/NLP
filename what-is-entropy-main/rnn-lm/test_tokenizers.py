@@ -6,6 +6,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def test_tokenizer(tokenizer_path: str, text_file):
     num_unks = 0
+    unk_tokens = []
 
     tokenizer = Tokenizer.from_file(tokenizer_path)
 
@@ -13,11 +14,15 @@ def test_tokenizer(tokenizer_path: str, text_file):
     outputs = tokenizer.encode_batch(lines)
     
     for i in range(len(outputs)):
-        for id in outputs[i].ids:
+        for (id,token) in zip(outputs[i].ids, outputs[i].tokens):
             if id == 8:
-                num_unks = num_unks + 1
-    
+                if token not in unk_tokens:
+                    num_unks = num_unks + 1
+                    unk_tokens.append(token)
+
     return num_unks
+
+#print(test_tokenizer('trained_tokenizers/bnc.json', 'data/switchboard/train.csv'))
 
 data = ["bnc", "maptask", "switchboard"]
 df = pd.DataFrame()
