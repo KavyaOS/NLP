@@ -24,7 +24,7 @@ def train_wordlevel_tokenizer(input_path, output_file, special_tokens = None):
     for tok in default_special_tokens:
         if tok not in special_tokens:
             special_tokens.append(tok)
-    trainer = WordLevelTrainer(special_tokens=special_tokens)
+    trainer = WordLevelTrainer(special_tokens=special_tokens, min_frequency=20)
 
     # Check if the corpus data exist
     if os.path.isdir(input_path):
@@ -90,7 +90,7 @@ def main():
     #train_wordlevel_tokenizer(input_path='data/position/cleaned_data_final.txt', output_file='data/position/cleaned_data_final_pad.json', special_tokens=['<70>', '<69>', '<43>', '<42>', '<40>', '<78>', '<39>', '<52>', '<51>', '<67>', '<79>', '<66>', '<48>', '<60>', '<61>', '<72>', '<129>'])
     
     check_special_tokens(input_path='data/combined_corpus/train.csv')
-    train_wordlevel_tokenizer(input_path='data/combined_corpus/train.csv', output_file='trained_tokenizers/combined_corpus.json', special_tokens=['<a>', '<b>', '<c>', '<d>', '<e>', '<f>', '<g>', '<h>'])
+    train_wordlevel_tokenizer(input_path='data/combined_corpus/train.csv', output_file='results_after_freq_threshold/minimum_frequency_20/trained_tokenizers/combined_corpus.json', special_tokens=['<a>', '<b>', '<c>', '<d>', '<e>', '<f>', '<g>', '<h>'])
 
     #test_tokenizer('trained_tokenizers/bnc.json')
 
