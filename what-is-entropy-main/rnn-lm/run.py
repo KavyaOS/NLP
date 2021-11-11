@@ -83,8 +83,6 @@ parser.add_argument('--mix_type', type=str, choices=['sum', 'concat', 'bilinear'
                     help='type')
 parser.add_argument('--pred_task', type=str, choices=['word', 'gesture'], default='',
                     help='prediction task')
-parser.add_argument('--mix_emsize', type=int, default='',
-                    help='mixed embedding size')
 
 # For experiments
 parser.add_argument('--task', type=str, default='main', choices=['main', 'compute'])
@@ -110,11 +108,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 ###
 # Load data
 ###
-<<<<<<< HEAD
-corpus = Corpus(args.data, prefix=args.data_prefix, ext=args.data_ext)
-=======
 corpus = Corpus(args.data)
->>>>>>> c7e7853d092f0e4ba75642d666fb933509acaa38
 train_data, val_data, test_data = corpus.get_data()
 
 # Load tokenizer
