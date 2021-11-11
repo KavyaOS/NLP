@@ -36,7 +36,7 @@ for tknzr in data:
 
 df.columns = data
 
-print("\n\n\n------------Displaying number of UNKs-----------\n\n")
+print("\n\n\n------------Displaying number of Unique UNKs-----------\n\n")
 print("Column: Tokenizer used\nRow: Text file tested\n\n")
 print(df)
 print("\n\n")
