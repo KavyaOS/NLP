@@ -1,3 +1,5 @@
+https://cloud.google.com/speech-to-text/docs/tutorials
+
 Script to extract word with time offsets from an input audio file
 Pre-requisites: Generate google-cloud credentials and link it with environment variables
 
